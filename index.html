@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResponseHQ NextGen - Tactical Command & Disaster Management</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS for Real GPS Map Integration -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #070b14; color: #e2e8f0; }
+        .font-tactical { font-family: 'Rajdhani', sans-serif; }
+        .glass-panel { background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.5); }
+        #map { height: 340px; width: 100%; border-radius: 0.75rem; z-index: 10; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-red-600 selection:text-white">
+
+    <!-- TOP HEADER -->
+    <header class="bg-slate-900/90 border-b border-slate-800 px-6 py-3 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="bg-red-600 text-white p-2 rounded-lg animate-pulse shadow-lg shadow-red-600/30">
+                <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-tactical text-2xl font-bold tracking-wider text-white flex items-center gap-2">
+                    RESPONSEHQ <span class="text-red-500 text-sm px-2 py-0.5 bg-red-950/80 border border-red-800 rounded">AI ESCALATION CORE</span>
+                </h1>
+                <p class="text-xs text-slate-400">Tactical Disaster Response & Auto-Escalation Command Platform</p>
+            </div>
+        </div>
+
+        <!-- NAVIGATION TABS -->
+        <nav class="flex items-center space-x-2 my-2 sm:my-0">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-red-600 text-white shadow-md shadow-red-600/30 flex items-center gap-2">
+                <i class="fa-solid fa-chart-line"></i> Command Dashboard
+            </button>
+            <button onclick="switchTab('report')" id="nav-report" class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-file-circle-plus"></i> Report Emergency
+            </button>
+            <button onclick="switchTab('teams')" id="nav-teams" class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-users-gear"></i> Response Teams
+            </button>
+            <button onclick="switchTab('analytics')" id="nav-analytics" class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie"></i> Analytics
+            </button>
+        </nav>
+
+        <div class="flex items-center gap-3">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-950 text-amber-400 border border-amber-800">
+                <span class="w-2 h-2 mr-2 bg-amber-500 rounded-full animate-ping"></span> AI ESCALATION ACTIVE
+            </span>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+
+        <!-- ================= SECTION 1: COMMAND DASHBOARD ================= -->
+        <div id="section-dashboard" class="space-y-6">
+            
+            <!-- METRICS CARDS -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div class="glass-panel p-4 rounded-xl border-l-4 border-l-blue-500">
+                    <p class="text-xs text-slate-400 font-medium">TOTAL INCIDENTS</p>
+                    <h3 id="stat-total" class="font-tactical text-3xl font-bold text-white mt-1">0</h3>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border-l-4 border-l-red-500">
+                    <p class="text-xs text-slate-400 font-medium">CRITICAL</p>
+                    <h3 id="stat-critical" class="font-tactical text-3xl font-bold text-red-500 mt-1">0</h3>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border-l-4 border-l-amber-500">
+                    <p class="text-xs text-slate-400 font-medium">PENDING</p>
+                    <h3 id="stat-pending" class="font-tactical text-3xl font-bold text-amber-400 mt-1">0</h3>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border-l-4 border-l-purple-500">
+                    <p class="text-xs text-slate-400 font-medium">ASSIGNED</p>
+                    <h3 id="stat-assigned" class="font-tactical text-3xl font-bold text-purple-400 mt-1">0</h3>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border-l-4 border-l-indigo-500">
+                    <p class="text-xs text-slate-400 font-medium">IN PROGRESS</p>
+                    <h3 id="stat-inprogress" class="font-tactical text-3xl font-bold text-indigo-400 mt-1">0</h3>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border-l-4 border-l-emerald-500">
+                    <p class="text-xs text-slate-400 font-medium">RESOLVED</p>
+                    <h3 id="stat-resolved" class="font-tactical text-3xl font-bold text-emerald-400 mt-1">0</h3>
+                </div>
+            </div>
+
+            <!-- CENTRAL OPERATIONS GRID -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- LEFT COLUMN: Prioritized Queue with Auto-Escalation Tag -->
+                <div class="glass-panel p-5 rounded-2xl flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-tactical text-lg font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-list-ol text-red-500"></i> AI Prioritized Queue
+                        </h2>
+                        <button onclick="loadDemoPresets()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded border border-slate-700 transition">
+                            <i class="fa-solid fa-bolt text-amber-400"></i> Load Presets
+                        </button>
+                    </div>
+                    <div id="prioritized-queue-list" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                        <div class="text-center py-8 text-slate-500 text-sm">No incidents loaded.</div>
+                    </div>
+                </div>
+
+                <!-- MIDDLE COLUMN: LEAFLET GPS MAP VISUALIZATION -->
+                <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="font-tactical text-lg font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-map-location-dot text-emerald-500"></i> Live GPS GIS Map & Routing
+                        </h2>
+                        <span id="map-status" class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">STANDBY</span>
+                    </div>
+                    
+                    <div id="map"></div>
+
+                    <div id="route-details-box" class="mt-3 p-3 bg-slate-900/90 rounded-xl border border-slate-800 text-xs flex justify-between items-center">
+                        <span class="text-slate-400">Tactical Routing: <strong class="text-slate-200">Select an incident</strong></span>
+                        <span id="route-distance-badge" class="font-tactical text-emerald-400 font-bold">-</span>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: Incident Management & Automated Dispatch -->
+                <div class="glass-panel p-5 rounded-2xl">
+                    <h2 class="font-tactical text-lg font-bold flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-satellite-dish text-blue-500"></i> Dispatch & Control Hub
+                    </h2>
+                    <div id="active-incident-details" class="space-y-4 text-sm">
+                        <div class="p-4 bg-slate-900/90 rounded-xl border border-slate-800 text-center text-slate-400 py-12">
+                            <i class="fa-solid fa-hand-pointer text-3xl mb-2 text-slate-600"></i>
+                            <p>Select any incident from the queue to view AI severity breakdown and execute automated team dispatch.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= SECTION 2: REPORT EMERGENCY FORM ================= -->
+        <div id="section-report" class="hidden space-y-6 max-w-3xl mx-auto">
+            <div class="glass-panel p-8 rounded-2xl shadow-xl">
+                <div class="border-b border-slate-800 pb-4 mb-6">
+                    <h2 class="font-tactical text-2xl font-bold flex items-center gap-3">
+                        <i class="fa-solid fa-file-circle-plus text-red-500"></i> Report Emergency Incident
+                    </h2>
+                    <p class="text-slate-400 text-sm mt-1">Submit live emergency reports to update the command queue.</p>
+                </div>
+
+                <form id="emergency-form" onsubmit="handleEmergencySubmit(event)" class="space-y-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase mb-2">Incident Title *</label>
+                            <input type="text" id="rep-title" required placeholder="e.g. Chemical Plant Gas Leak" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase mb-2">Emergency Category *</label>
+                            <select id="rep-category" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 transition">
+                                <option value="Fire Emergency">🔥 Fire Emergency</option>
+                                <option value="Road Accident">🚗 Road Accident</option>
+                                <option value="Medical Emergency">❤️ Medical Emergency</option>
+                                <option value="Flood">🌊 Flood</option>
+                                <option value="Building Collapse">🏢 Building Collapse</option>
+                                <option value="Other Emergencies">⚡ Other Emergencies</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase mb-2">Incident Description *</label>
+                        <textarea id="rep-desc" rows="3" required placeholder="Provide clear details regarding the emergency situation..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 transition"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase mb-2">Location / Zone *</label>
+                            <input type="text" id="rep-location" required placeholder="e.g. Sector 4, Expressway KM-12" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase mb-2">People Affected *</label>
+                            <input type="number" id="rep-affected" min="1" value="1" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase mb-2">Contact Info</label>
+                            <input type="text" id="rep-contact" placeholder="Optional Name/Phone" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 transition">
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex justify-end gap-3">
+                        <button type="button" onclick="switchTab('dashboard')" class="px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition">Cancel</button>
+                        <button type="submit" class="px-6 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold shadow-lg shadow-red-600/30 transition flex items-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> Submit to Queue
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= SECTION 3: RESPONSE TEAMS ================= -->
+        <div id="section-teams" class="hidden space-y-6">
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="font-tactical text-2xl font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-users-gear text-purple-500"></i> Emergency Response Units
+                        </h2>
+                        <p class="text-slate-400 text-sm">Monitor unit status and GPS coordinates.</p>
+                    </div>
+                    <button onclick="addNewTeamModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-bold transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Add New Unit
+                    </button>
+                </div>
+
+                <div id="teams-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </div>
+
+        <!-- ================= SECTION 4: ANALYTICS ================= -->
+        <div id="section-analytics" class="hidden space-y-6">
+            <div class="glass-panel p-6 rounded-2xl space-y-6">
+                <div>
+                    <h2 class="font-tactical text-2xl font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-indigo-500"></i> Advanced Analytics & Reports
+                    </h2>
+                    <p class="text-slate-400 text-sm">Key operational metrics and category distributions.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-900/90 p-5 rounded-xl border border-slate-800 text-center">
+                        <p class="text-xs text-slate-400 font-semibold uppercase">Total Incidents</p>
+                        <h3 id="analytics-total" class="font-tactical text-4xl font-bold text-white mt-2">0</h3>
+                    </div>
+                    <div class="bg-slate-900/90 p-5 rounded-xl border border-slate-800 text-center">
+                        <p class="text-xs text-slate-400 font-semibold uppercase">Avg Response Time</p>
+                        <h3 class="font-tactical text-4xl font-bold text-emerald-400 mt-2">2.4 Mins</h3>
+                    </div>
+                    <div class="bg-slate-900/90 p-5 rounded-xl border border-slate-800 text-center">
+                        <p class="text-xs text-slate-400 font-semibold uppercase">AI Escalation Efficiency</p>
+                        <h3 class="font-tactical text-4xl font-bold text-amber-400 mt-2">99.1%</h3>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/90 p-5 rounded-xl border border-slate-800">
+                    <h3 class="font-tactical text-lg font-bold mb-4 text-slate-200">Incident Category Distribution</h3>
+                    <div id="category-breakdown-list" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- NOTIFICATION MODAL SIMULATION (WhatsApp/SMS Alert) -->
+    <div id="alert-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="glass-panel p-6 rounded-2xl max-w-md w-full border-emerald-500 shadow-2xl space-y-4 animate-bounce">
+            <div class="flex items-center gap-3 text-emerald-400">
+                <i class="fa-brands fa-whatsapp text-3xl"></i>
+                <h3 class="font-tactical text-xl font-bold text-white">Automated Dispatch Alert Sent!</h3>
+            </div>
+            <p id="alert-message-text" class="text-xs text-slate-300 leading-relaxed"></p>
+            <button onclick="closeAlertModal()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition">Acknowledge & Close</button>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let incidents = [];
+        let teams = [
+            { id: 'MED-01', name: 'Alpha Medical Unit', category: 'Medical Emergency', status: 'Available', lat: 13.0827, lng: 80.2707, assignedIncId: null },
+            { id: 'FIRE-01', name: 'Rapid Fire Brigade Alpha', category: 'Fire Emergency', status: 'Available', lat: 13.0600, lng: 80.2500, assignedIncId: null },
+            { id: 'RES-01', name: 'Disaster Rescue Squad', category: 'Building Collapse', status: 'Available', lat: 13.1000, lng: 80.2900, assignedIncId: null }
+        ];
+
+        let selectedIncidentId = null;
+        let map, incidentMarker, teamMarker, routeLine;
+
+        function initMap() {
+            map = L.map('map').setView([13.0827, 80.2707], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap & CartoDB',
+                maxZoom: 19
+            }).addTo(map);
+        }
+
+        function switchTab(tabId) {
+            ['dashboard', 'report', 'teams', 'analytics'].forEach(t => {
+                document.getElementById(`section-${t}`).classList.add('hidden');
+                document.getElementById(`nav-${t}`).className = "px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800 flex items-center gap-2";
+            });
+            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+            document.getElementById(`nav-${tabId}`).className = "px-4 py-2 rounded-lg text-sm font-medium transition-all bg-red-600 text-white shadow-md shadow-red-600/30 flex items-center gap-2";
+            
+            if(tabId === 'dashboard') {
+                renderDashboard();
+                setTimeout(() => map.invalidateSize(), 200);
+            }
+            if(tabId === 'teams') renderTeams();
+            if(tabId === 'analytics') renderAnalytics();
+        }
+
+        function loadDemoPresets() {
+            const presets = [
+                {
+                    id: 'INC-901',
+                    title: 'Expressway Multi-Vehicle Crash',
+                    category: 'Road Accident',
+                    description: 'Car crash, 15 victims reported on Expressway KM-42.',
+                    location: 'Expressway KM-42',
+                    affected: 15,
+                    contact: 'Highway Patrol',
+                    lat: 13.0750, lng: 80.2600,
+                    time: new Date(),
+                    status: 'Reported',
+                    assignedTeam: null,
+                    escalated: false
+                },
+                {
+                    id: 'INC-902',
+                    title: 'Downtown Warehouse Blaze',
+                    category: 'Fire Emergency',
+                    description: 'Chemical drums catching fire near commercial district.',
+                    location: 'Sector 7 Industrial Area',
+                    affected: 8,
+                    contact: 'Factory Manager',
+                    lat: 13.0900, lng: 80.2400,
+                    time: new Date(Date.now() - 1000*60*15),
+                    status: 'Reported',
+                    assignedTeam: null,
+                    escalated: false
+                }
+            ];
+            
+            presets.forEach(p => {
+                if(!incidents.some(existing => existing.id === p.id)) {
+                    calcPriorityScore(p);
+                    incidents.push(p);
+                }
+            });
+            renderDashboard();
+        }
+
+        // UNIQUE FEATURE: AI Auto-Escalation Logic running periodically
+        setInterval(() => {
+            let updated = false;
+            incidents.forEach(inc => {
+                if(inc.status === 'Reported' && !inc.escalated) {
+                    let elapsedMins = (Date.now() - new Date(inc.time)) / 60000;
+                    if(elapsedMins > 0.2) { // Auto escalate if unaddressed for more than 12 seconds in demo
+                        inc.score += 25;
+                        inc.severityLevel = 'CRITICAL';
+                        inc.escalated = true;
+                        updated = true;
+                    }
+                }
+            });
+            if(updated && document.getElementById('section-dashboard').classList.contains('hidden') === false) {
+                renderDashboard();
+            }
+        }, 3000);
+
+        function calcPriorityScore(inc) {
+            let severityWeight = inc.category === 'Fire Emergency' || inc.category === 'Building Collapse' ? 40 : 25;
+            let affectedWeight = (parseInt(inc.affected) || 1) * 3;
+            let timeWeight = Math.min(Math.floor((Date.now() - new Date(inc.time)) / 60000 * 0.5), 20);
+            
+            let totalScore = severityWeight + affectedWeight + timeWeight;
+            if(inc.escalated) totalScore += 25; // Boost score if auto-escalated
+            inc.score = totalScore;
+            
+            if(totalScore >= 75) inc.severityLevel = 'CRITICAL';
+            else if(totalScore >= 55) inc.severityLevel = 'HIGH';
+            else if(totalScore >= 35) inc.severityLevel = 'MEDIUM';
+            else inc.severityLevel = 'LOW';
+        }
+
+        function handleEmergencySubmit(e) {
+            e.preventDefault();
+            const newInc = {
+                id: 'INC-' + Math.floor(100 + Math.random() * 900),
+                title: document.getElementById('rep-title').value,
+                category: document.getElementById('rep-category').value,
+                description: document.getElementById('rep-desc').value,
+                location: document.getElementById('rep-location').value,
+                affected: parseInt(document.getElementById('rep-affected').value) || 1,
+                contact: document.getElementById('rep-contact').value || 'Anonymous',
+                lat: 13.07 + (Math.random() * 0.04 - 0.02),
+                lng: 80.25 + (Math.random() * 0.04 - 0.02),
+                time: new Date(),
+                status: 'Reported',
+                assignedTeam: null,
+                escalated: false
+            };
+
+            calcPriorityScore(newInc);
+            incidents.unshift(newInc);
+            document.getElementById('emergency-form').reset();
+            switchTab('dashboard');
+        }
+
+        function renderDashboard() {
+            incidents.forEach(calcPriorityScore);
+            incidents.sort((a,b) => b.score - a.score);
+
+            document.getElementById('stat-total').innerText = incidents.length;
+            document.getElementById('stat-critical').innerText = incidents.filter(i => i.severityLevel === 'CRITICAL').length;
+            document.getElementById('stat-pending').innerText = incidents.filter(i => i.status === 'Reported' || i.status === 'Pending').length;
+            document.getElementById('stat-assigned').innerText = incidents.filter(i => i.status === 'Assigned').length;
+            document.getElementById('stat-inprogress').innerText = incidents.filter(i => i.status === 'In Progress').length;
+            document.getElementById('stat-resolved').innerText = incidents.filter(i => i.status === 'Resolved').length;
+
+            const queueEl = document.getElementById('prioritized-queue-list');
+            if(incidents.length === 0) {
+                queueEl.innerHTML = `<div class="text-center py-8 text-slate-500 text-sm">No incidents reported yet.</div>`;
+                return;
+            }
+
+            queueEl.innerHTML = incidents.map(inc => {
+                const badgeColor = inc.severityLevel === 'CRITICAL' ? 'bg-red-950 text-red-400 border-red-800 animate-pulse' :
+                                   inc.severityLevel === 'HIGH' ? 'bg-orange-950 text-orange-400 border-orange-800' :
+                                   inc.severityLevel === 'MEDIUM' ? 'bg-amber-950 text-amber-400 border-amber-800' : 'bg-emerald-950 text-emerald-400 border-emerald-800';
+                
+                return `
+                    <div onclick="selectIncident('${inc.id}')" class="p-4 rounded-xl border transition cursor-pointer bg-slate-900/90 hover:border-slate-600 ${selectedIncidentId === inc.id ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-800'}">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="font-tactical text-xs text-slate-400 font-bold">${inc.id} • ${inc.category}</span>
+                            <div class="flex items-center gap-1.5">
+                                ${inc.escalated ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-950 text-amber-400 border border-amber-800"><i class="fa-solid fa-triangle-exclamation"></i> AI ESCALATED</span>' : ''}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeColor}">${inc.severityLevel} (${inc.score})</span>
+                            </div>
+                        </div>
+                        <h4 class="font-bold text-white text-sm mb-1">${inc.title}</h4>
+                        <div class="flex justify-between items-center text-xs text-slate-400 mt-2">
+                            <span><i class="fa-solid fa-location-dot text-red-500 mr-1"></i> ${inc.location}</span>
+                            <span class="font-semibold text-slate-300 uppercase px-2 py-0.5 bg-slate-800 rounded">${inc.status}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if(selectedIncidentId) showIncidentDetails(selectedIncidentId);
+        }
+
+        function selectIncident(id) {
+            selectedIncidentId = id;
+            renderDashboard();
+        }
+
+        function showIncidentDetails(id) {
+            const inc = incidents.find(i => i.id === id);
+            if(!inc) return;
+
+            let bestTeam = teams.find(t => t.status === 'Available');
+            let distanceKm = (Math.random() * 3 + 1.2).toFixed(1);
+
+            const detailsEl = document.getElementById('active-incident-details');
+            detailsEl.innerHTML = `
+                <div class="p-4 bg-slate-900/90 rounded-xl border border-slate-800 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-tactical text-xs text-red-400 font-bold">${inc.id}</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">${inc.category}</span>
+                    </div>
+                    <h3 class="font-bold text-white text-base">${inc.title}</h3>
+                    <p class="text-xs text-slate-400">${inc.description}</p>
+                    
+                    <div class="grid grid-cols-2 gap-2 pt-2 text-xs border-t border-slate-800">
+                        <div><span class="text-slate-500">Location:</span> <strong class="text-slate-200">${inc.location}</strong></div>
+                        <div><span class="text-slate-500">Affected:</span> <strong class="text-slate-200">${inc.affected} Persons</strong></div>
+                        <div><span class="text-slate-500">Severity Score:</span> <strong class="text-red-400">${inc.score} (${inc.severityLevel})</strong></div>
+                        <div><span class="text-slate-500">Status:</span> <strong class="text-amber-400 uppercase">${inc.status}</strong></div>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-800">
+                        <p class="text-xs text-slate-400 mb-1">Recommended Nearest Unit:</p>
+                        <div class="p-2.5 bg-slate-950 rounded-lg border border-slate-800 flex justify-between items-center text-xs">
+                            <div>
+                                <strong class="text-emerald-400">${bestTeam ? bestTeam.name : 'No Unit Available'}</strong>
+                                <span class="text-slate-500 block">Est. Distance: ${distanceKm} km</span>
+                            </div>
+                            ${bestTeam && inc.status === 'Reported' ? `
+                                <button onclick="dispatchTeam('${inc.id}', '${bestTeam.id}', '${distanceKm}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold transition shadow">
+                                    <i class="fa-solid fa-route mr-1"></i> Dispatch
+                                </button>
+                            ` : `<span class="text-xs text-slate-400 uppercase">${inc.status}</span>`}
+                        </div>
+                    </div>
+
+                    ${inc.status !== 'Resolved' ? `
+                        <div class="flex gap-2 pt-2">
+                            <button onclick="updateStatus('${inc.id}', 'In Progress')" class="flex-1 py-1.5 bg-blue-600/80 hover:bg-blue-600 text-white rounded text-xs font-semibold transition">In Progress</button>
+                            <button onclick="updateStatus('${inc.id}', 'Resolved')" class="flex-1 py-1.5 bg-emerald-600/80 hover:bg-emerald-600 text-white rounded text-xs font-semibold transition">Resolve</button>
+                            <button onclick="deleteIncident('${inc.id}')" class="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-red-300 rounded text-xs transition"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    ` : `<button onclick="deleteIncident('${inc.id}')" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs transition">Delete Record</button>`}
+                </div>
+            `;
+
+            document.getElementById('map-status').innerText = "LIVE GPS TRACKING";
+            document.getElementById('map-status').className = "text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 animate-pulse";
+            document.getElementById('route-distance-badge').innerText = `${distanceKm} km optimal route`;
+
+            if(incidentMarker) map.removeLayer(incidentMarker);
+            if(teamMarker) map.removeLayer(teamMarker);
+            if(routeLine) map.removeLayer(routeLine);
+
+            incidentMarker = L.marker([inc.lat, inc.lng]).addTo(map)
+                .bindPopup(`<b>Incident: ${inc.id}</b><br>${inc.title}`).openPopup();
+
+            if(bestTeam) {
+                teamMarker = L.marker([bestTeam.lat, bestTeam.lng]).addTo(map)
+                    .bindPopup(`<b>Unit: ${bestTeam.name}</b>`);
+                
+                routeLine = L.polyline([[inc.lat, inc.lng], [bestTeam.lat, bestTeam.lng]], {
+                    color: '#10b981',
+                    weight: 3,
+                    dashArray: '5, 10'
+                }).addTo(map);
+            }
+
+            map.setView([inc.lat, inc.lng], 14);
+        }
+
+        function dispatchTeam(incId, teamId, dist) {
+            const inc = incidents.find(i => i.id === incId);
+            const team = teams.find(t => t.id === teamId);
+            if(inc && team) {
+                inc.status = 'Assigned';
+                inc.assignedTeam = team.name;
+                team.status = 'Busy';
+                team.assignedIncId = inc.id;
+
+                document.getElementById('alert-message-text').innerText = `🚨 EMERGENCY DISPATCH ALERT: Unit [${team.name}] assigned to [${inc.title}] at [${inc.location}]. Distance: ${dist} km. Route active on tactical GPS map.`;
+                document.getElementById('alert-modal').classList.remove('hidden');
+
+                renderDashboard();
+            }
+        }
+
+        function closeAlertModal() {
+            document.getElementById('alert-modal').classList.add('hidden');
+        }
+
+        function updateStatus(id, newStatus) {
+            const inc = incidents.find(i => i.id === id);
+            if(inc) {
+                inc.status = newStatus;
+                if(newStatus === 'Resolved') {
+                    const team = teams.find(t => t.assignedIncId === id);
+                    if(team) {
+                        team.status = 'Available';
+                        team.assignedIncId = null;
+                    }
+                }
+                renderDashboard();
+            }
+        }
+
+        function deleteIncident(id) {
+            incidents = incidents.filter(i => i.id !== id);
+            selectedIncidentId = null;
+            if(incidentMarker) map.removeLayer(incidentMarker);
+            if(teamMarker) map.removeLayer(teamMarker);
+            if(routeLine) map.removeLayer(routeLine);
+            renderDashboard();
+        }
+
+        function renderTeams() {
+            const grid = document.getElementById('teams-grid');
+            grid.innerHTML = teams.map(t => `
+                <div class="bg-slate-900/90 p-5 rounded-xl border border-slate-800 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-tactical text-xs text-purple-400 font-bold">${t.id}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${t.status === 'Available' ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 'bg-red-950 text-red-400 border-red-800'}">${t.status}</span>
+                    </div>
+                    <h3 class="font-bold text-white text-base">${t.name}</h3>
+                    <p class="text-xs text-slate-400">Category: <strong class="text-slate-200">${t.category}</strong></p>
+                    <p class="text-xs text-slate-400">Assigned Incident: <strong class="text-slate-200">${t.assignedIncId || 'None'}</strong></p>
+                    <button onclick="toggleTeamStatus('${t.id}')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition">
+                        Toggle Availability
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function toggleTeamStatus(id) {
+            const team = teams.find(t => t.id === id);
+            if(team) {
+                team.status = team.status === 'Available' ? 'Busy' : 'Available';
+                renderTeams();
+            }
+        }
+
+        function addNewTeamModal() {
+            const name = prompt("Enter Response Team Name:", "Hazmat Special Squad");
+            if(name) {
+                teams.push({
+                    id: 'TEAM-' + Math.floor(10 + Math.random() * 90),
+                    name: name,
+                    category: 'Other Emergencies',
+                    status: 'Available',
+                    lat: 13.08 + (Math.random() * 0.04 - 0.02),
+                    lng: 80.27 + (Math.random() * 0.04 - 0.02),
+                    assignedIncId: null
+                });
+                renderTeams();
+            }
+        }
+
+        function renderAnalytics() {
+            document.getElementById('analytics-total').innerText = incidents.length;
+            const catList = document.getElementById('category-breakdown-list');
+            const cats = ['Fire Emergency', 'Road Accident', 'Medical Emergency', 'Flood', 'Building Collapse', 'Other Emergencies'];
+            
+            catList.innerHTML = cats.map(cat => {
+                const count = incidents.filter(i => i.category === cat).length;
+                const percentage = incidents.length ? Math.round((count / incidents.length) * 100) : 0;
+                return `
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-300">${cat}</span>
+                            <span class="text-slate-400">${count} (${percentage}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div class="bg-indigo-500 h-full rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.onload = () => {
+            initMap();
+            loadDemoPresets();
+        };
+    </script>
+</body>
+</html>
